@@ -14,7 +14,7 @@ const OrderProductSchema = {
   createAt: {
     allowNull: false,
     type: DataTypes.DATE,
-    field: 'create_at',
+    field: 'created_at',
     defaultValue: Sequelize.literal('NOW()'),
   },
   amount: {
@@ -46,9 +46,7 @@ const OrderProductSchema = {
 };
 
 class OrderProduct extends Model {
-  static associate(models) {
-    
-  }
+  static associate(models) {}
   static config(sequelize) {
     return {
       sequelize,

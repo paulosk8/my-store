@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama de Flujo: Autenticación JWT con Passport.js</title>
+    <!-- Tailwind CSS para un diseño limpio -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Mermaid.js para renderizar los diagramas -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        /* Estilo para el contenedor del diagrama para que se vea bien */
+        .mermaid-container {
+            background-color: #1a202c; /* Un fondo oscuro que combina */
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid #4a5568;
+        }
+        body {
+            background-color: #111827; /* Fondo general oscuro */
+        }
+    </style>
+</head>
+<body class="text-gray-200 font-sans">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Visualización del Flujo de Autenticación JWT con Passport.js</h1>
+            <p class="mt-2 text-lg text-gray-400">Una vista previa interactiva de los dos procesos clave.</p>
+        </header>
+
+        <!-- Sección para el Diagrama de Login -->
+        <section>
+            <h2 class="text-2xl font-semibold text-cyan-400 border-b-2 border-cyan-400/30 pb-2">Parte 1: Flujo de Login (Autenticación)</h2>
+            <p class="mt-2 text-gray-400">Este proceso describe cómo un usuario envía sus credenciales y recibe un token JWT a cambio.</p>
+            <div class="mermaid-container">
+                <pre class="mermaid">
+                    graph TD
+                        subgraph "Flujo de Login"
+                            direction TB
+
+                            Client_Login((Cliente)) -- "1. POST /login con (email, password)" --> Route_Login[Endpoint: /login];
+                            Route_Login -- "2. Invoca a passport.authenticate('local')" --> Passport_Local_Auth{Estrategia 'local' de Passport};
+
+                            Passport_Local_Auth -- "3. Busca usuario en DB por email" --> DB_Users1[Base de Datos];
+                            DB_Users1 -- "Retorna usuario" --> Passport_Local_Auth;
+
+                            Passport_Local_Auth -- "4. Compara contraseña enviada con la de la DB" --> ComparePass{¿Contraseña válida?};
+                            ComparePass -- "NO ❌" --> Error_Response[Responde 401 Unauthorized];
+                            Error_Response --> Client_Login;
+
+                            ComparePass -- "SÍ ✅" --> Generate_Token[5. Genera Token JWT];
+                            Generate_Token -- "Payload: (sub, role)" --> JWT_Code["Lógica: jwt.sign(payload, secret)"];
+
+                            JWT_Code -- "6. Envía respuesta al cliente" --> Send_Token["JSON: (token: ...)"];
+                            Send_Token --> Client_Login;
+                        end
+
+                        %% Estilos
+                        style Route_Login fill:#083344,stroke:#0e7490
+                        style Passport_Local_Auth fill:#083344,stroke:#0e7490
+                        style ComparePass fill:#451a03,stroke:#f97316
+                        style Generate_Token fill:#0c4a6e,stroke:#0284c7
+                        style Send_Token fill:#0c4a6e,stroke:#0284c7
+                        style JWT_Code fill:#1f2937,stroke:#4b5563
+                        style Error_Response fill:#450a0a,stroke:#dc2626
+                        style Client_Login fill:#1e1b4b,stroke:#4338ca
+                        style DB_Users1 fill:#064e3b,stroke:#10b981
+                </pre>
+            </div>
+        </section>
+
+        <!-- Separador -->
+        <div class="my-12 border-t border-gray-700"></div>
+
+        <!-- Sección para el Diagrama de Ruta Protegida -->
+        <section>
+            <h2 class="text-2xl font-semibold text-emerald-400 border-b-2 border-emerald-400/30 pb-2">Parte 2: Flujo de Acceso a Ruta Protegida (Autorización)</h2>
+            <p class="mt-2 text-gray-400">Este proceso muestra cómo se valida un token JWT para permitir el acceso a un recurso protegido.</p>
+            <div class="mermaid-container">
+                <pre class="mermaid">
+                    graph TD
+                        subgraph "Flujo de Ruta Protegida"
+                            direction TB
+
+                            Client_Protected((Cliente)) -- "1. GET /my-orders <br>Header: Authorization: Bearer [token]" --> Route_Protected[Endpoint: /my-orders];
+                            Route_Protected -- "2. Middleware passport.authenticate('jwt') intercepta" --> Passport_JWT_Auth{Estrategia 'jwt' de Passport};
+
+                            Passport_JWT_Auth -- "3. Extrae token del header" --> Extract_Logic["Lógica: ExtractJwt.fromAuthHeaderAsBearerToken()"];
+                            Extract_Logic -- "4. Verifica firma y expiración del token" --> Verify_Token{¿Token válido?};
+
+                            Verify_Token -- "NO ❌" --> Error_Response_JWT[Responde 401 Unauthorized];
+                            Error_Response_JWT --> Client_Protected;
+
+                            Verify_Token -- "SÍ ✅" --> Attach_User[5. Payload del token se pasa a la función 'done'];
+                            Attach_User --> Attach_User_Code["Lógica: done(null, payload) <br> Passport adjunta el payload a req.user"];
+
+                            Attach_User_Code -- "6. El control pasa al controlador" --> Controller_Access[7. Controlador accede a req.user];
+                            Controller_Access -- "Usa 'req.user.sub' para la consulta" --> DB_Orders[Base de Datos];
+
+                            DB_Orders -- "Retorna datos del usuario" --> Controller_Access;
+                            Controller_Access -- "8. Responde con los datos" --> Client_Protected;
+                        end
+
+                        %% Estilos
+                        style Route_Protected fill:#064e3b,stroke:#10b981
+                        style Passport_JWT_Auth fill:#064e3b,stroke:#10b981
+                        style Verify_Token fill:#451a03,stroke:#f97316
+                        style Attach_User fill:#065f46,stroke:#047857
+                        style Controller_Access fill:#065f46,stroke:#047857
+                        style Extract_Logic fill:#1f2937,stroke:#4b5563
+                        style Attach_User_Code fill:#1f2937,stroke:#4b5563
+                        style Error_Response_JWT fill:#450a0a,stroke:#dc2626
+                        style Client_Protected fill:#1e1b4b,stroke:#4338ca
+                        style DB_Orders fill:#064e3b,stroke:#10b981
+                </pre>
+            </div>
+        </section>
+
+    </div>
+    <script>
+        // Inicializa Mermaid.js con un tema oscuro para que coincida con la página
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
+</body>
+</html>

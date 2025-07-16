@@ -18,7 +18,7 @@ router.get(
   passport.authenticate('jwt', {
     session: false,
   }),
-  checkRoles('admin', 'customer'),
+  checkRoles('admin', 'customer', 'seller'),
   async (req, res, next) => {
     try {
       const categories = await service.find();

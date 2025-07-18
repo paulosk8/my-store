@@ -27,4 +27,15 @@ router.post(
   },
 );
 
+router.post(
+  '/recovery',
+  async (req, res, next) => {
+    try {
+      const user = req.body;
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
 module.exports = router;

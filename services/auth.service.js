@@ -24,33 +24,47 @@ class AuthService {
       sub: user.id,
       role: user.role,
     };
-    const token = jwt.sing(payload, config.jwtSecret);
+    const token = jwt.sign(payload, config.jwtSecret);
     return {
       user,
       token,
     };
   }
-  async sendMail(email) {
+
+  async sendRecovery(email) {
     const user = await userService.findByEmail(email);
     if (!user) {
       throw (boom.unauthorized(), false);
     }
+    const payload = {
+      sub: user.id,
+    };
+    const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '15min' });
+    const link = `http://miecommerce.com/recovery?token=${token}`;
+    await userService.update(user.id, {
+      recoveryToken: token,
+    });
+    const mail = {
+      from: '"Paulo Galarza" <paulogalarza1993@gmail.com>',
+      to: `${user.email}`,
+      subject: 'Hello My Store',
+      html: `<b>Ingresa a este link para recuperar tu contraseña: ${link}</b>`, // HTML body
+    };
+    const rta = await this.sendMail(mail);
+    return rta;
+  }
+
+  async sendMail(infoMail) {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       secure: true,
       port: 465,
       auth: {
-        user: 'paulogalarza1993@gmail.com',
-        pass: 'shxerifhbetfcyxo',
+        user: config.smtpEmail,
+        pass: config.smtpPassword,
       },
     });
-    await transporter.sendMail({
-      from: '"Paulo Galarza" <paulogalarza1993@gmail.com>',
-      to: `${user.email}`,
-      subject: 'Hello My Store',
-      text: 'Email de prueba de la asigantura de Aplicaciones Distribuidas', // plain‑text body
-      html: '<b>Hello world ESPE</b>', // HTML body
-    });
+    await transporter.sendMail(infoMail);
     return {
       message: 'Email sent successfully',
     };
